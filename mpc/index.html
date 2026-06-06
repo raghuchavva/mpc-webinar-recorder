@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPC Webinar Registration</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      padding: 32px 28px;
+    }
+    h1 { margin: 0 0 4px; font-size: 22px; color: #1a1a2e; text-align: center; }
+    p.sub { margin: 0 0 24px; font-size: 14px; color: #6b7280; text-align: center; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin: 14px 0 6px; }
+    input {
+      width: 100%; padding: 11px 13px; font-size: 15px;
+      border: 1px solid #d1d5db; border-radius: 8px; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+    button.primary {
+      width: 100%; margin-top: 20px; padding: 13px;
+      font-size: 16px; font-weight: 600; color: #fff;
+      background: #667eea; border: none; border-radius: 8px;
+      cursor: pointer; transition: background .15s;
+    }
+    button.primary:hover { background: #5568d3; }
+    button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .msg { margin-top: 14px; font-size: 14px; text-align: center; min-height: 20px; }
+    .msg.error { color: #dc2626; }
+    .msg.ok    { color: #059669; }
+    .btn-ghost {
+      display: inline-block; margin-top: 12px; font-size: 13px;
+      color: #9ca3af; cursor: pointer; background: none; border: none;
+      width: auto; padding: 0; text-decoration: underline;
+    }
+    .btn-ghost:hover { color: #6b7280; background: none; }
+    #screenRegistered { display: none; text-align: center; }
+    #screenRegistered h2 { font-size: 20px; color: #1a1a2e; margin: 0 0 8px; }
+    #screenRegistered p  { font-size: 14px; color: #6b7280; margin: 0 0 20px; }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <div id="screenForm">
+    <h1>Webinar Registration</h1>
+    <p class="sub">Fill in your details to join the live session.</p>
+
+    <form id="regForm">
+      <label for="parentName">Parent Name</label>
+      <input type="text" id="parentName" name="parentName" required />
+
+      <label for="parentNumber">Parent Mobile Number</label>
+      <input type="tel" id="parentNumber" name="parentNumber" required
+             pattern="(\+91[\-\s]?)?[6-9][0-9]{9}"
+             title="Enter a valid mobile number" />
+
+      <label for="studentName">Student Name</label>
+      <input type="text" id="studentName" name="studentName" required />
+
+      <label for="studentNumber">Student Number <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+      <input type="tel" id="studentNumber" name="studentNumber"
+             pattern="[0-9+\-\s]{7,15}" title="Enter a valid phone number" />
+
+      <button type="submit" id="submitBtn" class="primary">Proceed to Session</button>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+
+  <div id="screenRegistered">
+    <h2>You're already registered!</h2>
+    <p>Welcome back, <strong id="regName"></strong>.</p>
+    <button class="primary" id="joinBtn">Watch Webinar Recording</button>
+    <br>
+    <button class="btn-ghost" id="notYouBtn">Not you? Register with different details</button>
+  </div>
+
+</div>
+<script>
+  const SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbx_zcJJW-X_-0eXyzcJJemZcTRBQwvBuIQoW24Y-B7cPuf1JJ2995p5FDLWKrXlmjcfwQ/exec";
+  const COURSE      = "MPC";
+  const STORAGE_KEY = "webinar_reg_MPC";
+
+  let meetLink = null;
+
+  // Pre-fetch the YouTube link while user fills the form
+  fetch(SCRIPT_URL + "?course=" + COURSE, { method: "GET" })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d && d.meetLink) meetLink = d.meetLink; })
+    .catch(function() {});
+
+  // If already registered on this device, skip the form
+  (function checkExisting() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      var reg = JSON.parse(saved);
+      document.getElementById("screenForm").style.display = "none";
+      document.getElementById("regName").textContent = reg.parentName || "there";
+      document.getElementById("screenRegistered").style.display = "block";
+    } catch (e) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  })();
+
+  document.getElementById("joinBtn").addEventListener("click", async function() {
+    var link = meetLink;
+    if (!link) {
+      link = await fetch(SCRIPT_URL + "?course=" + COURSE, { method: "GET" })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { return d.meetLink; })
+        .catch(function() { return null; });
+    }
+    if (link) window.location.href = link;
+  });
+
+  document.getElementById("notYouBtn").addEventListener("click", function() {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  });
+
+  var form      = document.getElementById("regForm");
+  var submitBtn = document.getElementById("submitBtn");
+  var msg       = document.getElementById("msg");
+
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Joining…";
+
+    var data = {
+      course:        COURSE,
+      parentName:    form.parentName.value.trim(),
+      parentNumber:  form.parentNumber.value.trim(),
+      studentName:   form.studentName.value.trim(),
+      studentNumber: form.studentNumber.value.trim(),
+    };
+
+    // Save to localStorage immediately
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      parentName:   data.parentName,
+      parentNumber: data.parentNumber,
+      studentName:  data.studentName,
+      timestamp:    new Date().toISOString()
+    }));
+
+    // Fire registration to sheet in background — don't wait
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(data),
+    }).catch(function() {});
+
+    // Redirect immediately using pre-fetched link
+    if (meetLink) {
+      window.location.href = meetLink;
+    } else {
+      // Fallback: fetch link if pre-fetch hadn't completed
+      try {
+        var res = await fetch(SCRIPT_URL + "?course=" + COURSE, { method: "GET" });
+        var result = await res.json();
+        if (result.meetLink) {
+          window.location.href = result.meetLink;
+        }
+      } catch (err) {
+        msg.textContent = "Could not load session link. Please try again.";
+        msg.className = "msg error";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Proceed to Session";
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/MPC", "destination": "/mpc/index.html" },
+    { "source": "/BIPC", "destination": "/bipc/index.html" }
+  ]
+}
